@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: random_coffee_bot
+    restart: unless-stopped
+    volumes:
+      - .:/app  # Монтируем текущую директорию в контейнер
+    environment:
+      - TOKEN=ВАШ_ТОКЕН_БОТА  # Укажите токен бота
+      - ADMIN_ID=123456789    # Укажите ID администратора
