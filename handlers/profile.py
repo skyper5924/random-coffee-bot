@@ -94,6 +94,7 @@ async def show_my_profile(message: Message, state: FSMContext):
             f"Возраст: {user_data['age']}\n"
             f"Город: {user_data['city']}\n"
             f"О себе: {user_data['bio']}",
+            f"Тема: {user_data.get('topic', 'не выбрана')}",  # Добавляем тему
             reply_markup=profile_menu_keyboard
         )
     else:
