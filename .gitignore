@@ -29,6 +29,7 @@ MANIFEST
 settings.py
 users.json
 config.py
+topics.json
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

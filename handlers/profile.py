@@ -1,9 +1,9 @@
 from aiogram import Router, F
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.context import FSMContext
 from keyboards.main_menu import main_menu_keyboard
 from keyboards.profile_menu import profile_menu_keyboard
-from utils.storage import load_users, save_users
+from utils.storage import load_users, save_users, load_topics
 from states import Form
 
 router = Router()
@@ -54,31 +54,46 @@ async def process_city(message: Message, state: FSMContext) -> None:
 
 # Обработчик для состояния "about_me"
 @router.message(Form.about_me)
-async def process_about_me(message: Message, state: FSMContext) -> None:
-    user_id = message.from_user.id
-    users = load_users()
+async def process_about_me(message: Message, state: FSMContext):
+    await state.update_data(about_me=message.text)
+    topics = load_topics()
 
-    # Сохраняем данные из состояния
-    data = await state.get_data()
-    users[str(user_id)] = {
-        'name': data['name'],
-        'age': data['age'],
-        'city': data['city'],
-        'bio': message.text,
-        'username': message.from_user.username  # Сохраняем username
-    }
-    save_users(users)  # Сохраняем данные в JSON
+    if topics:
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=topic)] for topic in topics],
+            resize_keyboard=True
+        )
+        await message.answer("Какая тема тебе ближе всего?", reply_markup=keyboard)
+        await state.set_state(Form.topic)
+    else:
+        await message.answer("Темы не найдены. Пожалуйста, свяжитесь с администратором.", reply_markup=main_menu_keyboard)
+        await state.clear()  # Очищаем состояние
 
-    # Показываем пользователю его данные
-    await message.answer(
-        f"Ваша анкета:\n"
-        f"Имя: {data['name']}\n"
-        f"Возраст: {data['age']}\n"
-        f"Город: {data['city']}\n"
-        f"О себе: {message.text}",
-        reply_markup=profile_menu_keyboard
-    )
-    await state.clear()  # Завершаем состояние
+@router.message(Form.topic)
+async def process_topic(message: Message, state: FSMContext):
+    topics = load_topics()
+    selected_topic = message.text
+
+    if selected_topic in topics:
+        await state.update_data(topic=selected_topic)
+        data = await state.get_data()
+
+        # Сохраняем данные пользователя
+        user_id = message.from_user.id
+        users = load_users()
+        users[str(user_id)] = {
+            'name': data['name'],
+            'age': data['age'],
+            'city': data['city'],
+            'bio': data['about_me'],
+            'topic': selected_topic
+        }
+        save_users(users)
+
+        await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
+        await state.clear()
+    else:
+        await message.answer("Пожалуйста, выберите тему из списка.")
 
 @router.message(F.text == "Моя анкета")
 async def show_my_profile(message: Message, state: FSMContext):
@@ -94,7 +109,7 @@ async def show_my_profile(message: Message, state: FSMContext):
             f"Возраст: {user_data['age']}\n"
             f"Город: {user_data['city']}\n"
             f"О себе: {user_data['bio']}",
-            f"Тема: {user_data.get('topic', 'не выбрана')}",  # Добавляем тему
+            f"Тема: {user_data['topic']}",
             reply_markup=profile_menu_keyboard
         )
     else:
@@ -126,3 +141,4 @@ async def edit_profile(message: Message, state: FSMContext):
         await message.answer("У вас еще нет анкеты. Давайте начнем регистрацию!", reply_markup=ReplyKeyboardRemove())
         await state.set_state(Form.name)
         await message.answer("Как вас зовут?")
+
