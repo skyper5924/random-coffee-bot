@@ -83,7 +83,7 @@ async def manage_topics(message: Message):
             keyboard=[
                 [KeyboardButton(text="Добавить тему")],
                 [KeyboardButton(text="Удалить тему")] if topics else [],
-                [KeyboardButton(text="Вернуться в админ-меню")]
+                [KeyboardButton(text="Вернуться в главное меню")]
             ],
             resize_keyboard=True
         )
