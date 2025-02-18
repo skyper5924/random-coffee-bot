@@ -103,15 +103,15 @@ async def show_my_profile(message: Message, state: FSMContext):
     if str(user_id) in users:
         # Показываем анкету, если она есть
         user_data = users[str(user_id)]
-        await message.answer(
+        profile_text = (
             f"Ваша анкета:\n"
             f"Имя: {user_data['name']}\n"
             f"Возраст: {user_data['age']}\n"
             f"Город: {user_data['city']}\n"
-            f"О себе: {user_data['bio']}",
-            f"Тема: {user_data['topic']}",
-            reply_markup=profile_menu_keyboard
+            f"О себе: {user_data['bio']}\n"
+            f"Тема: {user_data.get('topic', 'не выбрана')}"
         )
+        await message.answer(profile_text, reply_markup=profile_menu_keyboard)
     else:
         # Если анкеты нет, начинаем регистрацию
         await message.answer("Вы еще не заполнили анкету. Давайте начнем регистрацию!", reply_markup=ReplyKeyboardRemove())
