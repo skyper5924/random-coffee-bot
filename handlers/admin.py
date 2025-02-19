@@ -1,10 +1,11 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, ReplyKeyboardRemove, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from config import ADMIN_ID
 from keyboards.admin_menu import admin_menu_keyboard
 from keyboards.main_menu import main_menu_keyboard
-from utils.storage import load_users, save_topics, load_topics
+from utils.matching_tasks import weekly_matching
+from utils.storage import load_users, save_topics, load_topics, load_config, save_config, DAY_TRANSLATION
 from states import BroadcastState
 from aiogram.fsm.state import State, StatesGroup
 import logging
@@ -13,6 +14,8 @@ import asyncio
 class AdminStates(StatesGroup):
     add_topic = State()
     delete_topic = State()
+    set_matching_day = State()  # Состояние для настройки дня
+    set_matching_time = State()  # Состояние для настройки времени
 
 router = Router()
 
@@ -151,3 +154,77 @@ async def process_delete_topic(message: Message, state: FSMContext):
         await message.answer("Тема не найдена.", reply_markup=admin_menu_keyboard)
 
     await state.clear()
+
+
+REVERSE_DAY_TRANSLATION = {v: k for k, v in DAY_TRANSLATION.items()}
+@router.message(F.text == "Настроить время подбора пар")
+async def set_matching_schedule(message: Message, state: FSMContext):
+    if is_admin(message.from_user.id):
+        config = load_config()
+        day_russian = REVERSE_DAY_TRANSLATION.get(config["matching_day"], config["matching_day"])
+        await message.answer(
+            f"Текущие настройки:\n"
+            f"День: {day_russian}\n"
+            f"Время: {config['matching_time']}",
+            reply_markup=ReplyKeyboardMarkup(
+                keyboard=[
+                    [KeyboardButton(text="Изменить день")],
+                    [KeyboardButton(text="Изменить время")],
+                    [KeyboardButton(text="Вернуться в главное меню")]
+                ],
+                resize_keyboard=True
+            )
+        )
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+
+@router.message(F.text == "Изменить день")
+async def set_matching_day(message: Message, state: FSMContext):
+    if is_admin(message.from_user.id):
+        await message.answer(
+            "Введите день недели для подбора пар (например, 'mon' для понедельника):",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await state.set_state(AdminStates.set_matching_day)
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+
+@router.message(AdminStates.set_matching_day)
+async def process_set_matching_day(message: Message, state: FSMContext):
+    day_input = message.text.lower()
+    if day_input in DAY_TRANSLATION:
+        config = load_config()
+        config["matching_day"] = DAY_TRANSLATION[day_input]
+        save_config(config)
+        await message.answer(f"День подбора пар изменён на: {day_input}", reply_markup=admin_menu_keyboard)
+    else:
+        await message.answer("Некорректный день недели. Пожалуйста, введите день на русском языке (например, 'понедельник').")
+
+    await state.clear()
+
+@router.message(F.text == "Изменить время")
+async def set_matching_time(message: Message, state: FSMContext):
+    if is_admin(message.from_user.id):
+        await message.answer(
+            "Введите время для подбора пар (например, '10:00'):",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await state.set_state(AdminStates.set_matching_time)
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+
+@router.message(AdminStates.set_matching_time)
+async def process_set_matching_time(message: Message, state: FSMContext):
+    config = load_config()
+    config["matching_time"] = message.text
+    save_config(config)
+    await message.answer(f"Время подбора пар изменено на: {message.text}", reply_markup=admin_menu_keyboard)
+    await state.clear()
+
+@router.message(F.text == "Запустить подбор пар")
+async def manual_matching(message: Message, bot: Bot):
+    if is_admin(message.from_user.id):
+        await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())
+        await weekly_matching(bot)  # Передаём bot в функцию
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
