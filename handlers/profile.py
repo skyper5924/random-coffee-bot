@@ -95,7 +95,7 @@ async def process_topic(message: Message, state: FSMContext):
     else:
         await message.answer("Пожалуйста, выберите тему из списка.")
 
-@router.message(F.text == "Моя анкета")
+@router.message(F.text == "📄 Моя анкета")
 async def show_my_profile(message: Message, state: FSMContext):
     user_id = message.from_user.id
     users = load_users()
@@ -118,7 +118,7 @@ async def show_my_profile(message: Message, state: FSMContext):
         await state.set_state(Form.name)  # Переходим в состояние "name"
         await message.answer("Как вас зовут?")
 
-@router.message(F.text == "Изменить анкету")
+@router.message(F.text == "✏️ Изменить анкету")
 async def edit_profile(message: Message, state: FSMContext):
     user_id = message.from_user.id
     users = load_users()
