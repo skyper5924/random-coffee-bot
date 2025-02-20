@@ -225,6 +225,6 @@ async def process_set_matching_time(message: Message, state: FSMContext):
 async def manual_matching(message: Message, bot: Bot):
     if is_admin(message.from_user.id):
         await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())
-        await weekly_matching(bot)  # Передаём bot в функцию
+        await weekly_matching(bot)  # Запуск функции подбора пар
     else:
         await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
