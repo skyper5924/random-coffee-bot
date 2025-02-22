@@ -5,12 +5,10 @@ from keyboards.main_menu import main_menu_keyboard
 from keyboards.profile_menu import profile_menu_keyboard
 from utils.storage import load_users, save_users, load_topics
 from states import Form
-
-router = Router()
-
-# Обработчик для состояния "name"
 import re
 from datetime import datetime
+
+router = Router()
 
 # Обработчик для состояния "name"
 @router.message(Form.name)
@@ -40,10 +38,9 @@ async def process_age(message: Message, state: FSMContext) -> None:
         await message.answer("Возраст должен быть в диапазоне от 1 до 100 лет.")
         return
 
-    await state.update_data(age=message.text)  # Сохраняем возраст
+    await state.update_data(age=str(age))  # Сохраняем возраст как строку
     await state.set_state(Form.city)  # Переходим к следующему состоянию
     await message.answer("Из какого вы города?")
-
 
 # Обработчик для состояния "city"
 @router.message(Form.city)
@@ -69,6 +66,7 @@ async def process_about_me(message: Message, state: FSMContext):
         await message.answer("Темы не найдены. Пожалуйста, свяжитесь с администратором.", reply_markup=main_menu_keyboard)
         await state.clear()  # Очищаем состояние
 
+# Обработчик для состояния "topic"
 @router.message(Form.topic)
 async def process_topic(message: Message, state: FSMContext):
     topics = load_topics()
@@ -86,15 +84,17 @@ async def process_topic(message: Message, state: FSMContext):
             'age': data['age'],
             'city': data['city'],
             'bio': data['about_me'],
-            'topic': selected_topic
+            'topic': selected_topic,
+            'username': message.from_user.username  # Сохраняем username
         }
         save_users(users)
 
         await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
-        await state.clear()
+        await state.clear()  # Очищаем состояние
     else:
         await message.answer("Пожалуйста, выберите тему из списка.")
 
+# Обработчик для команды "Моя анкета"
 @router.message(F.text == "📄 Моя анкета")
 async def show_my_profile(message: Message, state: FSMContext):
     user_id = message.from_user.id
@@ -118,6 +118,7 @@ async def show_my_profile(message: Message, state: FSMContext):
         await state.set_state(Form.name)  # Переходим в состояние "name"
         await message.answer("Как вас зовут?")
 
+# Обработчик для команды "Изменить анкету"
 @router.message(F.text == "✏️ Изменить анкету")
 async def edit_profile(message: Message, state: FSMContext):
     user_id = message.from_user.id
@@ -141,4 +142,3 @@ async def edit_profile(message: Message, state: FSMContext):
         await message.answer("У вас еще нет анкеты. Давайте начнем регистрацию!", reply_markup=ReplyKeyboardRemove())
         await state.set_state(Form.name)
         await message.answer("Как вас зовут?")
-
