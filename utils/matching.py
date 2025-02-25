@@ -5,25 +5,22 @@ from utils.storage import load_users
 from config import ADMIN_ID
 
 def match_users() -> List[Tuple[str, str]]:
-    """
-    Подбирает пары пользователей, учитывая их темы.
-    Возвращает список кортежей (user_id1, user_id2).
-    """
     users = load_users()
     pairs = []
     logging.info(f"Всего пользователей: {len(users)}")
 
-    # Группируем пользователей по темам
+    # Группируем пользователей по темам, учитывая только активных
     topics_dict = {}
     for user_id, user_data in users.items():
-        topic = user_data.get("topic", "без темы")
-        if topic not in topics_dict:
-            topics_dict[topic] = []
-        topics_dict[topic].append(user_id)
+        if user_data.get('status', 'active') == 'active':  # Проверяем статус
+            topic = user_data.get("topic", "без темы")
+            if topic not in topics_dict:
+                topics_dict[topic] = []
+            topics_dict[topic].append(user_id)
 
     # Подбираем пары внутри каждой группы
     for topic, user_ids in topics_dict.items():
-        random.shuffle(user_ids)  # Перемешиваем пользователей
+        random.shuffle(user_ids)
         for i in range(0, len(user_ids) - 1, 2):
             pairs.append((user_ids[i], user_ids[i + 1]))
             logging.info(f"Пара: {user_ids[i]} ↔ {user_ids[i + 1]} (тема: {topic})")
@@ -32,8 +29,6 @@ def match_users() -> List[Tuple[str, str]]:
         if len(user_ids) % 2 != 0:
             leftover_user = user_ids[-1]
             logging.info(f"Пользователь {leftover_user} остался без пары (тема: {topic})")
-            # Отправляем уведомление пользователю, что пару не нашли
-            # (это будет сделано в функции notify_users)
 
     logging.info(f"Всего пар: {len(pairs)}")
     return pairs

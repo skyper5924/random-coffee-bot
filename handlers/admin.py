@@ -158,7 +158,13 @@ async def process_delete_topic(message: Message, state: FSMContext):
 @router.message(F.text == "🎯 Запустить подбор пар")
 async def manual_matching(message: Message, bot: Bot):
     if is_admin(message.from_user.id):
-        await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())
-        await weekly_matching(bot)  # Запуск функции подбора пар
+        await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())  # Удаляем клавиатуру
+        pairs = await weekly_matching(bot)  # Запуск функции подбора пар
+
+        # Возвращаем клавиатуру после завершения
+        await message.answer(
+            f"Подбор пар завершён. Найдено пар: {len(pairs)}.",
+            reply_markup=admin_menu_keyboard  # Возвращаем админскую клавиатуру
+        )
     else:
         await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)

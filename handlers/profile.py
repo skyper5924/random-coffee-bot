@@ -85,7 +85,8 @@ async def process_topic(message: Message, state: FSMContext):
             'city': data['city'],
             'bio': data['about_me'],
             'topic': selected_topic,
-            'username': message.from_user.username  # Сохраняем username
+            'username': message.from_user.username,
+            'status': 'active'  # Добавляем статус по умолчанию
         }
         save_users(users)
 

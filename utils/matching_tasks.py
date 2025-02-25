@@ -10,3 +10,4 @@ async def weekly_matching(bot: Bot):
     pairs = match_users()
     await notify_users(bot, pairs)
     logging.info("Подбор пар завершён.")
+    return pairs  # Возвращаем результат подбора пар
