@@ -1,18 +1,22 @@
 import logging
 import random
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 from utils.storage import load_users
 from config import ADMIN_ID
 
 def match_users() -> List[Tuple[str, str]]:
+    """
+    Подбирает пары пользователей, учитывая их темы.
+    Возвращает список кортежей (user_id1, user_id2).
+    """
     users = load_users()
     pairs = []
     logging.info(f"Всего пользователей: {len(users)}")
 
-    # Группируем пользователей по темам, учитывая только активных
+    # Группируем пользователей по темам
     topics_dict = {}
     for user_id, user_data in users.items():
-        if user_data.get('status', 'active') == 'active':  # Проверяем статус
+        if user_data.get('status', 'active') == 'active':  # Учитываем только активных
             topic = user_data.get("topic", "без темы")
             if topic not in topics_dict:
                 topics_dict[topic] = []

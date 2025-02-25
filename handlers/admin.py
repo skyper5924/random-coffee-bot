@@ -5,7 +5,7 @@ from config import ADMIN_ID
 from keyboards.admin_menu import admin_menu_keyboard
 from keyboards.main_menu import main_menu_keyboard
 from utils.matching_tasks import weekly_matching
-from utils.storage import load_users, save_topics, load_topics
+from utils.storage import load_users, save_topic, load_topics, delete_topic
 from states import BroadcastState
 from aiogram.fsm.state import State, StatesGroup
 import logging
@@ -14,8 +14,8 @@ import asyncio
 class AdminStates(StatesGroup):
     add_topic = State()
     delete_topic = State()
-    set_matching_day = State()  # Состояние для настройки дня
-    set_matching_time = State()  # Состояние для настройки времени
+    set_matching_day = State()
+    set_matching_time = State()
 
 router = Router()
 
@@ -115,8 +115,7 @@ async def process_add_topic(message: Message, state: FSMContext):
     new_topic = message.text
 
     if new_topic not in topics:
-        topics.append(new_topic)
-        save_topics(topics)
+        save_topic(new_topic)
         await message.answer(f"Тема '{new_topic}' добавлена.", reply_markup=admin_menu_keyboard)
     else:
         await message.answer("Такая тема уже существует.", reply_markup=admin_menu_keyboard)
@@ -124,7 +123,7 @@ async def process_add_topic(message: Message, state: FSMContext):
     await state.clear()
 
 @router.message(F.text == "➖ Удалить тему")
-async def delete_topic(message: Message, state: FSMContext):
+async def delete_topic_handler(message: Message, state: FSMContext):
     logging.info(f"Пользователь {message.from_user.id} начал удаление темы.")
     if is_admin(message.from_user.id):
         topics = load_topics()
@@ -147,8 +146,7 @@ async def process_delete_topic(message: Message, state: FSMContext):
     topic_to_delete = message.text
 
     if topic_to_delete in topics:
-        topics.remove(topic_to_delete)
-        save_topics(topics)
+        delete_topic(topic_to_delete)
         await message.answer(f"Тема '{topic_to_delete}' удалена.", reply_markup=admin_menu_keyboard)
     else:
         await message.answer("Тема не найдена.", reply_markup=admin_menu_keyboard)
@@ -158,13 +156,11 @@ async def process_delete_topic(message: Message, state: FSMContext):
 @router.message(F.text == "🎯 Запустить подбор пар")
 async def manual_matching(message: Message, bot: Bot):
     if is_admin(message.from_user.id):
-        await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())  # Удаляем клавиатуру
-        pairs = await weekly_matching(bot)  # Запуск функции подбора пар
-
-        # Возвращаем клавиатуру после завершения
+        await message.answer("Запуск подбора пар...", reply_markup=ReplyKeyboardRemove())
+        pairs = await weekly_matching(bot)
         await message.answer(
             f"Подбор пар завершён. Найдено пар: {len(pairs)}.",
-            reply_markup=admin_menu_keyboard  # Возвращаем админскую клавиатуру
+            reply_markup=admin_menu_keyboard
         )
     else:
         await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)

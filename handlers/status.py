@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
-from utils.storage import load_users, save_users
+from utils.storage import load_users, save_user
 from keyboards.main_menu import main_menu_keyboard
 
 router = Router()
@@ -35,7 +35,7 @@ async def set_active_status(message: Message):
 
     if user_id in users:
         users[user_id]['status'] = 'active'
-        save_users(users)
+        save_user(users)
         await message.answer("Ваш статус изменён на: Активен.", reply_markup=main_menu_keyboard)
     else:
         await message.answer("Вы еще не заполнили анкету.", reply_markup=main_menu_keyboard)
@@ -47,7 +47,7 @@ async def set_inactive_status(message: Message):
 
     if user_id in users:
         users[user_id]['status'] = 'inactive'
-        save_users(users)
+        save_user(users)
         await message.answer("Ваш статус изменён на: Не активен.", reply_markup=main_menu_keyboard)
     else:
         await message.answer("Вы еще не заполнили анкету.", reply_markup=main_menu_keyboard)

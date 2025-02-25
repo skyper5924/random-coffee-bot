@@ -3,7 +3,7 @@ from aiogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, Key
 from aiogram.fsm.context import FSMContext
 from keyboards.main_menu import main_menu_keyboard
 from keyboards.profile_menu import profile_menu_keyboard
-from utils.storage import load_users, save_users, load_topics
+from utils.storage import load_users, save_user, load_topics
 from states import Form
 import re
 from datetime import datetime
@@ -13,8 +13,8 @@ router = Router()
 # Обработчик для состояния "name"
 @router.message(Form.name)
 async def process_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(name=message.text)  # Сохраняем имя
-    await state.set_state(Form.age)  # Переходим к следующему состоянию
+    await state.update_data(name=message.text)
+    await state.set_state(Form.age)
     await message.answer("Укажите дату рождения в формате ДД.ММ.ГГГГ")
 
 # Обработчик для состояния "age"
@@ -38,15 +38,15 @@ async def process_age(message: Message, state: FSMContext) -> None:
         await message.answer("Возраст должен быть в диапазоне от 1 до 100 лет.")
         return
 
-    await state.update_data(age=str(age))  # Сохраняем возраст как строку
-    await state.set_state(Form.city)  # Переходим к следующему состоянию
+    await state.update_data(age=str(age))
+    await state.set_state(Form.city)
     await message.answer("Из какого вы города?")
 
 # Обработчик для состояния "city"
 @router.message(Form.city)
 async def process_city(message: Message, state: FSMContext) -> None:
-    await state.update_data(city=message.text)  # Сохраняем город
-    await state.set_state(Form.about_me)  # Переходим к следующему состоянию
+    await state.update_data(city=message.text)
+    await state.set_state(Form.about_me)
     await message.answer("Расскажите немного о себе.")
 
 # Обработчик для состояния "about_me"
@@ -64,7 +64,7 @@ async def process_about_me(message: Message, state: FSMContext):
         await state.set_state(Form.topic)
     else:
         await message.answer("Темы не найдены. Пожалуйста, свяжитесь с администратором.", reply_markup=main_menu_keyboard)
-        await state.clear()  # Очищаем состояние
+        await state.clear()
 
 # Обработчик для состояния "topic"
 @router.message(Form.topic)
@@ -78,20 +78,19 @@ async def process_topic(message: Message, state: FSMContext):
 
         # Сохраняем данные пользователя
         user_id = message.from_user.id
-        users = load_users()
-        users[str(user_id)] = {
+        user_data = {
             'name': data['name'],
             'age': data['age'],
             'city': data['city'],
             'bio': data['about_me'],
             'topic': selected_topic,
             'username': message.from_user.username,
-            'status': 'active'  # Добавляем статус по умолчанию
+            'status': 'active'
         }
-        save_users(users)
+        save_user(str(user_id), user_data)
 
         await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
-        await state.clear()  # Очищаем состояние
+        await state.clear()
     else:
         await message.answer("Пожалуйста, выберите тему из списка.")
 
@@ -102,7 +101,6 @@ async def show_my_profile(message: Message, state: FSMContext):
     users = load_users()
 
     if str(user_id) in users:
-        # Показываем анкету, если она есть
         user_data = users[str(user_id)]
         profile_text = (
             f"Ваша анкета:\n"
@@ -114,9 +112,8 @@ async def show_my_profile(message: Message, state: FSMContext):
         )
         await message.answer(profile_text, reply_markup=profile_menu_keyboard)
     else:
-        # Если анкеты нет, начинаем регистрацию
         await message.answer("Вы еще не заполнили анкету. Давайте начнем регистрацию!", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(Form.name)  # Переходим в состояние "name"
+        await state.set_state(Form.name)
         await message.answer("Как вас зовут?")
 
 # Обработчик для команды "Изменить анкету"
@@ -126,20 +123,16 @@ async def edit_profile(message: Message, state: FSMContext):
     users = load_users()
 
     if str(user_id) in users:
-        # Загружаем текущие данные пользователя
         user_data = users[str(user_id)]
-        # Сохраняем текущие данные в состояние
         await state.update_data(
             name=user_data['name'],
             age=user_data['age'],
             city=user_data['city'],
             about_me=user_data['bio']
         )
-        # Начинаем процесс редактирования
         await message.answer("Давайте изменим вашу анкету. Как вас зовут?", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(Form.name)  # Переходим в состояние "name"
+        await state.set_state(Form.name)
     else:
-        # Если анкеты нет, предлагаем начать регистрацию
         await message.answer("У вас еще нет анкеты. Давайте начнем регистрацию!", reply_markup=ReplyKeyboardRemove())
         await state.set_state(Form.name)
         await message.answer("Как вас зовут?")
