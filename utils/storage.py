@@ -11,9 +11,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT UNIQUE NOT NULL,
             name TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            city TEXT NOT NULL,
-            bio TEXT NOT NULL,
+            work_place TEXT NOT NULL,  -- Место работы
+            work_description TEXT NOT NULL,  -- Описание работы
+            hobbies TEXT NOT NULL,  -- Хобби
             topic TEXT NOT NULL,
             username TEXT,
             status TEXT DEFAULT 'active'
@@ -40,9 +40,9 @@ def load_users():
     conn.close()
     return {user[1]: {
         'name': user[2],
-        'age': user[3],
-        'city': user[4],
-        'bio': user[5],
+        'work_place': user[3],
+        'work_description': user[4],
+        'hobbies': user[5],
         'topic': user[6],
         'username': user[7],
         'status': user[8]
@@ -53,14 +53,14 @@ def save_user(user_id, user_data):
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, name, age, city, bio, topic, username, status)
+        INSERT OR REPLACE INTO users (user_id, name, work_place, work_description, hobbies, topic, username, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         user_id,
         user_data['name'],
-        user_data['age'],
-        user_data['city'],
-        user_data['bio'],
+        user_data['work_place'],
+        user_data['work_description'],
+        user_data['hobbies'],
         user_data['topic'],
         user_data.get('username'),
         user_data.get('status', 'active')

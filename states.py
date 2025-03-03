@@ -1,12 +1,11 @@
 from aiogram.fsm.state import StatesGroup, State
 
 class Form(StatesGroup):
-    name = State()
-    age = State()
-    city = State()
-    about_me = State()
-    topic = State()  # Новое состояние для выбора темы
-    answer_yes = State()
+    name = State()  # Состояние для имени
+    work_place = State()  # Состояние для места работы
+    work_description = State()  # Состояние для описания работы
+    hobbies = State()  # Состояние для хобби
+    topic = State()  # Состояние для выбора темы
 
 class BroadcastState(StatesGroup):
-    broadcast_message = State()  # Новое состояние для рассылки сообщений
+    broadcast_message = State()  # Состояние для рассылки сообщений

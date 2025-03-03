@@ -153,6 +153,41 @@ async def process_delete_topic(message: Message, state: FSMContext):
 
     await state.clear()
 
+@router.message(F.text == "👀 Просмотреть все анкеты")
+async def view_all_profiles(message: Message):
+    if is_admin(message.from_user.id):
+        users = load_users()
+
+        if not users:
+            await message.answer("Анкет пока нет.", reply_markup=admin_menu_keyboard)
+            return
+
+        # Разбиваем анкеты на части по 5 штук
+        users_list = list(users.items())
+        chunk_size = 5
+        chunks = [users_list[i:i + chunk_size] for i in range(0, len(users_list), chunk_size)]
+
+        for chunk in chunks:
+            profiles_text = "Список анкет:\n\n"
+            for user_id, user_data in chunk:
+                profile_text = (
+                    f"👤 Имя: {user_data['name']}\n"
+                    f"💼 Работа: {user_data['work_place']}\n"
+                    f"📝 Описание работы: {user_data['work_description']}\n"
+                    f"🎯 Хобби: {user_data['hobbies']}\n"
+                    f"🏷️ Тема: {user_data.get('topic', 'не выбрана')}\n"
+                    f"🔗 Username: @{user_data.get('username', 'не указан')}\n"
+                    f"📊 Статус: {'Активен' if user_data.get('status', 'active') == 'active' else 'Не активен'}\n"
+                    f"---\n"
+                )
+                profiles_text += profile_text
+
+            # Отправляем часть анкет
+            await message.answer(profiles_text, reply_markup=admin_menu_keyboard)
+
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+
 @router.message(F.text == "🎯 Запустить подбор пар")
 async def manual_matching(message: Message, bot: Bot):
     if is_admin(message.from_user.id):

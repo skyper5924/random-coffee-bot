@@ -34,8 +34,9 @@ async def set_active_status(message: Message):
     users = load_users()
 
     if user_id in users:
-        users[user_id]['status'] = 'active'
-        save_user(users)
+        user_data = users[user_id]  # Получаем данные конкретного пользователя
+        user_data['status'] = 'active'  # Меняем статус на активный
+        save_user(user_id, user_data)  # Передаём user_id и user_data
         await message.answer("Ваш статус изменён на: Активен.", reply_markup=main_menu_keyboard)
     else:
         await message.answer("Вы еще не заполнили анкету.", reply_markup=main_menu_keyboard)
@@ -46,8 +47,9 @@ async def set_inactive_status(message: Message):
     users = load_users()
 
     if user_id in users:
-        users[user_id]['status'] = 'inactive'
-        save_user(users)
+        user_data = users[user_id]  # Получаем данные конкретного пользователя
+        user_data['status'] = 'inactive'  # Меняем статус на неактивный
+        save_user(user_id, user_data)  # Передаём user_id и user_data
         await message.answer("Ваш статус изменён на: Не активен.", reply_markup=main_menu_keyboard)
     else:
         await message.answer("Вы еще не заполнили анкету.", reply_markup=main_menu_keyboard)

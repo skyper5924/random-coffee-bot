@@ -5,7 +5,8 @@ admin_menu_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton(text="👥 Количество участников")],
         [KeyboardButton(text="📨 Отправить сообщение всем")],
         [KeyboardButton(text="📝 Управление темами")],
-        [KeyboardButton(text="🎯 Запустить подбор пар")],  # Добавляем эмодзи
+        [KeyboardButton(text="🎯 Запустить подбор пар")],
+        [KeyboardButton(text="👀 Просмотреть все анкеты")],  # Новая кнопка
         [KeyboardButton(text="🔙 Вернуться в главное меню")]
     ],
     resize_keyboard=True
