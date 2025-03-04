@@ -36,8 +36,42 @@ async def admin_menu(message: Message):
 async def show_participants_count(message: Message):
     if is_admin(message.from_user.id):
         users = load_users()
-        count = len(users)
-        await message.answer(f"Количество участников: {count}", reply_markup=admin_menu_keyboard)
+        topics = load_topics()
+
+        # Общее количество участников
+        total_users = len(users)
+
+        # Количество активных и неактивных участников
+        active_users = sum(1 for user in users.values() if user.get('status') == 'active')
+        inactive_users = total_users - active_users
+
+        # Количество участников по темам
+        topics_count = {topic: 0 for topic in topics}
+        users_without_topic = 0
+
+        for user in users.values():
+            if user.get('topic'):
+                topics_count[user['topic']] += 1
+            else:
+                users_without_topic += 1
+
+        # Формируем текст статистики
+        stats_text = (
+            f"📊 Статистика участников:\n"
+            f"👤 Всего участников: {total_users}\n"
+            f"✅ Активных: {active_users}\n"
+            f"❌ Неактивных: {inactive_users}\n"
+            f"🏷️ Участников по темам:\n"
+        )
+
+        # Добавляем статистику по темам
+        for topic, count in topics_count.items():
+            stats_text += f"  - {topic}: {count}\n"
+
+        # Добавляем участников без темы
+        stats_text += f"🚫 Без темы: {users_without_topic}\n"
+
+        await message.answer(stats_text, reply_markup=admin_menu_keyboard)
     else:
         await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
 

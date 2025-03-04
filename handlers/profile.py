@@ -110,7 +110,8 @@ async def edit_profile(message: Message, state: FSMContext):
 # Обработчик для выбора темы через инлайн-клавиатуру
 @router.callback_query(F.data.startswith("select_topic:"))
 async def process_topic_selection(callback: CallbackQuery, state: FSMContext):
-    topic = callback.data.split(":")[1]
+    # Разделяем callback_data и восстанавливаем тему
+    topic = callback.data.split(":")[1].replace('_', ' ')  # Заменяем "_" обратно на пробелы
     user_id = str(callback.from_user.id)
     users = load_users()
 
