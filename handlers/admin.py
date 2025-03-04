@@ -10,12 +10,15 @@ from states import BroadcastState
 from aiogram.fsm.state import State, StatesGroup
 import logging
 import asyncio
+from keyboards.inline import create_topic_keyboard
 
 class AdminStates(StatesGroup):
     add_topic = State()
     delete_topic = State()
     set_matching_day = State()
     set_matching_time = State()
+    confirm_topic_selection = State()  # Новое состояние для подтверждения рассылки
+
 
 router = Router()
 
@@ -199,3 +202,52 @@ async def manual_matching(message: Message, bot: Bot):
         )
     else:
         await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+
+@router.message(F.text == "📩 Запустить рассылку с выбором тем")
+async def start_topic_selection(message: Message, state: FSMContext):
+    if is_admin(message.from_user.id):
+        topics = load_topics()
+        if topics:
+            keyboard = ReplyKeyboardMarkup(
+                keyboard=[
+                    [KeyboardButton(text="✏️ Управление темами")],
+                    [KeyboardButton(text="✅ Подтвердить")]
+                ],
+                resize_keyboard=True
+            )
+            await message.answer(
+                "Доступные темы:\n" + "\n".join(topics),
+                reply_markup=keyboard
+            )
+            await state.set_state(AdminStates.confirm_topic_selection)
+        else:
+            await message.answer("Темы не найдены. Сначала добавьте темы.", reply_markup=admin_menu_keyboard)
+    else:
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+@router.message(F.text == "✏️ Управление темами", AdminStates.confirm_topic_selection)
+async def manage_topics_from_selection(message: Message, state: FSMContext):
+    await manage_topics(message)
+
+@router.message(F.text == "✅ Подтвердить", AdminStates.confirm_topic_selection)
+async def confirm_topic_selection(message: Message, state: FSMContext, bot: Bot):
+    users = load_users()
+    active_users = {user_id: user_data for user_id, user_data in users.items() if user_data.get('status') == 'active'}
+    topics = load_topics()
+
+    if not topics:
+        await message.answer("Темы не найдены. Сначала добавьте темы.", reply_markup=admin_menu_keyboard)
+        return
+
+    for user_id in active_users:
+        try:
+            await bot.send_message(
+                chat_id=user_id,
+                text="🌟 Пришло время выбрать тему для ближайшей встречи!\n"
+                     "Выберите тему, которая вам ближе всего, и мы подберём для вас идеальную пару.",
+                reply_markup=create_topic_keyboard(topics)  # Используем функцию для создания клавиатуры
+            )
+        except Exception as e:
+            logging.error(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
+
+    await message.answer("Рассылка с выбором темы завершена.", reply_markup=admin_menu_keyboard)
+    await state.clear()

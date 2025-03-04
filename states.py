@@ -5,7 +5,7 @@ class Form(StatesGroup):
     work_place = State()  # Состояние для места работы
     work_description = State()  # Состояние для описания работы
     hobbies = State()  # Состояние для хобби
-    topic = State()  # Состояние для выбора темы
+#    topic = State()  # Состояние для выбора темы
 
 class BroadcastState(StatesGroup):
     broadcast_message = State()  # Состояние для рассылки сообщений
