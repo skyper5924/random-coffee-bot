@@ -4,9 +4,10 @@ services:
   bot:
     build: .
     container_name: random_coffee_bot
-    restart: unless-stopped
     volumes:
       - .:/app  # Монтируем текущую директорию в контейнер
+      - ./data:/app/data  # Монтируем папку с базой данных
     environment:
-      - TOKEN=ВАШ_ТОКЕН_БОТА  # Укажите токен бота
-      - ADMIN_ID=123456789    # Укажите ID администратора
+      - TOKEN=${TOKEN}  # Токен бота из переменной окружения
+      - ADMIN_ID=${ADMIN_ID}  # ID администратора из переменной окружения
+    restart: unless-stopped

@@ -1,3 +1,4 @@
+import random
 from aiogram import Router, F, Bot
 from aiogram.types import Message, ReplyKeyboardRemove, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.fsm.context import FSMContext
@@ -285,3 +286,97 @@ async def confirm_topic_selection(message: Message, state: FSMContext, bot: Bot)
 
     await message.answer("Рассылка с выбором темы завершена.", reply_markup=admin_menu_keyboard)
     await state.clear()
+
+
+@router.message(F.text == "🤝 Подбор пар ФУБ и пользователь")
+async def match_fub_pairs(message: Message, bot: Bot):
+    if not is_admin(message.from_user.id):
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+        return
+
+    await message.answer("Запуск подбора пар ФУБ ↔ пользователь...", reply_markup=ReplyKeyboardRemove())
+
+    users = load_users()
+    fub_members = {uid: data for uid, data in users.items()
+                   if data.get('is_fub_member') == 'Да' and data.get('status') == 'active'}
+    non_fub_members = {uid: data for uid, data in users.items()
+                       if data.get('is_fub_member') != 'Да' and data.get('status') == 'active'}
+
+    # Перемешиваем списки
+    fub_ids = list(fub_members.keys())
+    non_fub_ids = list(non_fub_members.keys())
+    random.shuffle(fub_ids)
+    random.shuffle(non_fub_ids)
+
+    pairs = []
+    min_pairs = min(len(fub_ids), len(non_fub_ids))
+
+    # Формируем пары
+    for i in range(min_pairs):
+        pairs.append((fub_ids[i], non_fub_ids[i]))
+
+    # Отправляем уведомления
+    success_count = 0
+    for fub_id, non_fub_id in pairs:
+        try:
+            # Сообщение члену ФУБ
+            await bot.send_message(
+                chat_id=fub_id,
+                text=f"🎉 Ваша пара на эту неделю: {non_fub_members[non_fub_id]['name']}!\n"
+                     f"💼 Работа: {non_fub_members[non_fub_id].get('work_place', 'не указано')}\n"
+                     f"📝 Описание работы: {non_fub_members[non_fub_id].get('work_description', 'не указано')}\n"
+                     f"🎯 Хобби: {non_fub_members[non_fub_id].get('hobbies', 'не указано')}\n"
+                     f"Напишите своему партнеру: @{non_fub_members[non_fub_id].get('username', 'username_не_указан')}\n"
+                     f"Договоритесь о встрече!"
+            )
+
+            # Сообщение не члену ФУБ
+            await bot.send_message(
+                chat_id=non_fub_id,
+                text=f"🎉 Ваша пара на эту неделю: {fub_members[fub_id]['name']} (член клуба ФУБ)!\n"
+                     f"💼 Работа: {fub_members[fub_id].get('work_place', 'не указано')}\n"
+                     f"📝 Описание работы: {fub_members[fub_id].get('work_description', 'не указано')}\n"
+                     f"🎯 Хобби: {fub_members[fub_id].get('hobbies', 'не указано')}\n"
+                     f"Напишите своему партнеру: @{fub_members[fub_id].get('username', 'username_не_указан')}\n"
+                     f"Договоритесь о встрече!"
+            )
+            success_count += 1
+        except Exception as e:
+            logging.error(f"Ошибка при отправке сообщения: {e}")
+
+    # Уведомления для оставшихся без пары
+    leftover_fub = len(fub_ids) - min_pairs
+    leftover_non_fub = len(non_fub_ids) - min_pairs
+
+    # Уведомляем членов ФУБ без пары
+    if leftover_fub > 0:
+        for i in range(min_pairs, len(fub_ids)):
+            try:
+                await bot.send_message(
+                    chat_id=fub_ids[i],
+                    text="😔 На этой неделе мы не смогли найти вам пару. Попробуем в следующий раз!"
+                )
+            except Exception as e:
+                logging.error(f"Ошибка при отправке сообщения: {e}")
+
+    # Уведомляем не членов ФУБ без пары
+    if leftover_non_fub > 0:
+        for i in range(min_pairs, len(non_fub_ids)):
+            try:
+                await bot.send_message(
+                    chat_id=non_fub_ids[i],
+                    text="😔 На этой неделе мы не смогли найти вам пару. Попробуем в следующий раз!"
+                )
+            except Exception as e:
+                logging.error(f"Ошибка при отправке сообщения: {e}")
+
+    # Отчет администратору
+    report = (
+        f"Подбор пар ФУБ ↔ пользователь завершен:\n"
+        f"Успешно создано пар: {success_count}\n"
+        f"Членов ФУБ без пары: {leftover_fub}\n"
+        f"Пользователей без пары: {leftover_non_fub}"
+    )
+
+    await message.answer(report, reply_markup=admin_menu_keyboard)
+    logging.info(report)

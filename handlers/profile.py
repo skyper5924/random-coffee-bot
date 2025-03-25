@@ -34,33 +34,76 @@ async def process_work_description(message: Message, state: FSMContext) -> None:
     await message.answer("Чем увлекаешься в свободное время?")
 
 # Обработчик для состояния "hobbies"
+# Обработчик для состояния hobbies
 @router.message(Form.hobbies)
 async def process_hobbies(message: Message, state: FSMContext):
-    await state.update_data(hobbies=message.text)  # Сохраняем хобби
+    await state.update_data(hobbies=message.text)
 
-    # Получаем данные из состояния
+    # Создаем клавиатуру для вопроса о членстве
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Да"), KeyboardButton(text="Нет")]
+        ],
+        resize_keyboard=True
+    )
+
+    await message.answer("Являетесь ли вы членом клуба ФУБ?", reply_markup=keyboard)
+    await state.set_state(Form.is_fub_member)
+
+
+# Обработчик для состояния is_fub_member
+@router.message(Form.is_fub_member)
+async def process_is_fub_member(message: Message, state: FSMContext):
+    if message.text not in ["Да", "Нет"]:
+        await message.answer("Пожалуйста, выберите вариант из кнопок ниже")
+        return
+
+    await state.update_data(is_fub_member=message.text)
+
+    if message.text == "Да":
+        await message.answer("Укажите ваш fubid", reply_markup=ReplyKeyboardRemove())
+        await state.set_state(Form.fub_id)
+    else:
+        # Если не член клуба, переходим к сохранению данных
+        data = await state.get_data()
+        await save_user_data(message, data)
+        await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
+        await state.clear()
+
+
+# Обработчик для состояния fub_id
+@router.message(Form.fub_id)
+async def process_fub_id(message: Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Пожалуйста, укажите числовой ID")
+        return
+
+    await state.update_data(fub_id=message.text)
     data = await state.get_data()
+    await save_user_data(message, data)
+    await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
+    await state.clear()
 
-    # Сохраняем данные пользователя
+
+# Общая функция сохранения данных пользователя
+async def save_user_data(message: Message, data: dict):
     user_id = message.from_user.id
     user_data = {
         'name': data['name'],
         'work_place': data['work_place'],
         'work_description': data['work_description'],
         'hobbies': data['hobbies'],
-        'topic': '',  # Тема пока пустая
+        'is_fub_member': data.get('is_fub_member', 'Нет'),
+        'fub_id': data.get('fub_id'),
         'username': message.from_user.username,
         'status': 'active'
     }
     save_user(str(user_id), user_data)
 
-    await message.answer("Спасибо! Анкета заполнена.", reply_markup=main_menu_keyboard)
-    await state.clear()  # Очищаем состояние
-
 
 # Обработчик для команды "Моя анкета"
 @router.message(F.text == "📄 Моя анкета")
-async def show_my_profile(message: Message, state: FSMContext):  # Добавляем state
+async def show_my_profile(message: Message, state: FSMContext):
     user_id = message.from_user.id
     users = load_users()
 
@@ -72,8 +115,12 @@ async def show_my_profile(message: Message, state: FSMContext):  # Добавл�
             f"Место работы: {user_data['work_place']}\n"
             f"Чем занимаешься: {user_data['work_description']}\n"
             f"Хобби: {user_data['hobbies']}\n"
+            f"Член клуба ФУБ: {user_data.get('is_fub_member', 'Нет')}\n"
         )
-        # Добавляем тему, если она есть
+
+        if user_data.get('is_fub_member') == 'Да':
+            profile_text += f"FUB ID: {user_data.get('fub_id', 'не указан')}\n"
+
         if user_data.get('topic'):
             profile_text += f"Тема: {user_data['topic']}\n"
 
@@ -81,9 +128,8 @@ async def show_my_profile(message: Message, state: FSMContext):  # Добавл�
     else:
         await message.answer("Вы еще не заполнили анкету. Давайте начнем регистрацию!",
                              reply_markup=ReplyKeyboardRemove())
-        await state.set_state(Form.name)  # Теперь state доступен
+        await state.set_state(Form.name)
         await message.answer("Как вас зовут?")
-
 
 
 # Обработчик для команды "Изменить анкету"

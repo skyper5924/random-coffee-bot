@@ -17,6 +17,8 @@ def init_db():
                 work_place TEXT NOT NULL,
                 work_description TEXT NOT NULL,
                 hobbies TEXT NOT NULL,
+                is_fub_member TEXT NOT NULL,
+                fub_id TEXT,
                 topic TEXT,
                 username TEXT,
                 status TEXT DEFAULT 'active'
@@ -54,14 +56,17 @@ def load_users():
     cursor.execute('SELECT * FROM users')
     users = cursor.fetchall()
     conn.close()
+
     return {user[1]: {
         'name': user[2],
         'work_place': user[3],
         'work_description': user[4],
         'hobbies': user[5],
-        'topic': user[6],
-        'username': user[7],
-        'status': user[8]
+        'is_fub_member': user[6],  # Новое поле
+        'fub_id': user[7],  # Новое поле
+        'topic': user[8],
+        'username': user[9],
+        'status': user[10]
     } for user in users}
 
 # Сохранение пользователя
@@ -69,16 +74,28 @@ def save_user(user_id: str, user_data: dict):
     conn = sqlite3.connect('data/database.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, name, work_place, work_description, hobbies, topic, username, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO users (
+            user_id, 
+            name, 
+            work_place, 
+            work_description, 
+            hobbies, 
+            is_fub_member,  
+            fub_id,         
+            topic,
+            username,
+            status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         user_id,
         user_data['name'],
         user_data['work_place'],
         user_data['work_description'],
         user_data['hobbies'],
-        user_data.get('topic', ''),  # Обновляем тему
-        user_data.get('username', ''),
+        user_data.get('is_fub_member', 'Нет'),  # Значение по умолчанию "Нет"
+        user_data.get('fub_id'),                # Может быть None
+        user_data.get('topic'),
+        user_data.get('username'),
         user_data.get('status', 'active')
     ))
     conn.commit()

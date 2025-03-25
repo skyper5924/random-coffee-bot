@@ -7,6 +7,7 @@ admin_menu_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton(text="📩 Запустить рассылку с выбором тем")],  # Новая кнопка
         [KeyboardButton(text="📝 Управление темами")],
         [KeyboardButton(text="🎯 Запустить подбор пар")],
+        [KeyboardButton(text="🤝 Подбор пар ФУБ и пользователь")],
         [KeyboardButton(text="👀 Просмотреть все анкеты")],
         [KeyboardButton(text="🔙 Вернуться в главное меню")]
     ],
