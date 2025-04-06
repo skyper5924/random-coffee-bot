@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from config import ADMIN_ID
 from keyboards.admin_menu import admin_menu_keyboard
 from keyboards.main_menu import main_menu_keyboard
+from utils.matching import random_match_users
 from utils.matching_tasks import weekly_matching
 from utils.storage import load_users, save_topic, load_topics, delete_topic
 from states import BroadcastState
@@ -376,6 +377,76 @@ async def match_fub_pairs(message: Message, bot: Bot):
         f"Успешно создано пар: {success_count}\n"
         f"Членов ФУБ без пары: {leftover_fub}\n"
         f"Пользователей без пары: {leftover_non_fub}"
+    )
+
+    await message.answer(report, reply_markup=admin_menu_keyboard)
+    logging.info(report)
+
+
+@router.message(F.text == "🎲 Запустить рандомный подбор пар")
+async def random_matching(message: Message, bot: Bot):
+    if not is_admin(message.from_user.id):
+        await message.answer("У вас нет доступа к этой команде.", reply_markup=main_menu_keyboard)
+        return
+
+    await message.answer("Запуск рандомного подбора пар...", reply_markup=ReplyKeyboardRemove())
+
+    pairs = random_match_users()
+    users = load_users()
+    success_count = 0
+
+    # Отправляем уведомления парам
+    for user_id1, user_id2 in pairs:
+        try:
+            user1 = users[user_id1]
+            user2 = users[user_id2]
+
+            # Сообщение первому участнику
+            await bot.send_message(
+                chat_id=user_id1,
+                text=f"🎲 Ваша случайная пара на эту неделю: {user2['name']}!\n"
+                     f"💼 Работа: {user2.get('work_place', 'не указано')}\n"
+                     f"📝 Описание работы: {user2.get('work_description', 'не указано')}\n"
+                     f"🎯 Хобби: {user2.get('hobbies', 'не указано')}\n"
+                     f"Напишите своему партнеру: @{user2.get('username', 'username_не_указан')}\n"
+                     f"Договоритесь о встрече!"
+            )
+
+            # Сообщение второму участнику
+            await bot.send_message(
+                chat_id=user_id2,
+                text=f"🎲 Ваша случайная пара на эту неделю: {user1['name']}!\n"
+                     f"💼 Работа: {user1.get('work_place', 'не указано')}\n"
+                     f"📝 Описание работы: {user1.get('work_description', 'не указано')}\n"
+                     f"🎯 Хобби: {user1.get('hobbies', 'не указано')}\n"
+                     f"Напишите своему партнеру: @{user1.get('username', 'username_не_указан')}\n"
+                     f"Договоритесь о встрече!"
+            )
+            success_count += 1
+        except Exception as e:
+            logging.error(f"Ошибка при отправке сообщения: {e}")
+
+    # Обработка нечетного количества участников
+    leftover = []
+    active_users = [uid for uid, data in users.items() if data.get('status') == 'active']
+    paired_users = {uid for pair in pairs for uid in pair}
+    leftover_users = [uid for uid in active_users if uid not in paired_users]
+
+    # Уведомление оставшимся без пары
+    for user_id in leftover_users:
+        try:
+            await bot.send_message(
+                chat_id=user_id,
+                text="😔 К сожалению, на этой неделе мы не смогли найти вам пару. Попробуем в следующий раз!"
+            )
+        except Exception as e:
+            logging.error(f"Ошибка при отправке сообщения: {e}")
+
+    # Отчет администратору
+    report = (
+        f"Рандомный подбор пар завершен:\n"
+        f"Успешно создано пар: {success_count}\n"
+        f"Участников без пары: {len(leftover_users)}"
     )
 
     await message.answer(report, reply_markup=admin_menu_keyboard)

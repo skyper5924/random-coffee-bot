@@ -32,6 +32,25 @@ def match_users() -> List[Tuple[str, str]]:
 
     return pairs
 
+
+def random_match_users() -> List[Tuple[str, str]]:
+    """
+    Рандомный подбор пар среди всех активных пользователей
+    Возвращает список кортежей (user_id1, user_id2)
+    """
+    users = load_users()
+    active_users = [uid for uid, data in users.items() if data.get('status') == 'active']
+
+    # Перемешиваем список
+    random.shuffle(active_users)
+
+    # Разбиваем на пары
+    pairs = []
+    for i in range(0, len(active_users) - 1, 2):
+        pairs.append((active_users[i], active_users[i + 1]))
+
+    return pairs
+
 async def notify_users(bot, pairs: List[Tuple[str, str]]):
     """
     Отправляет уведомления пользователям об их парах и теме.

@@ -66,7 +66,7 @@ def load_users():
         'fub_id': user[7],  # Новое поле
         'topic': user[8],
         'username': user[9],
-        'status': user[10]
+        'status': user[10] if len(user) > 10 else 'active'  # Дефолтное значение
     } for user in users}
 
 # Сохранение пользователя
